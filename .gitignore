@@ -1,0 +1,6 @@
+.venv
+.env
+receipts/
+
+archive
+output
