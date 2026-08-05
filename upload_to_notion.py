@@ -59,7 +59,7 @@ GROCERY_CATEGORY_MAP = {
     "Snacks & Candy":    "Snacks & Candy",
     "Personal Care":     "Personal Care",
     "Cleaning Supplies": "Cleaning Supplies",
-    "Baby & Pet":        "Baby & Pet",
+    "Pet":               "Pet",
     "Pharmacy":          "Pharmacy",
     "Other":             "Other",
 }
