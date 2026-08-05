@@ -164,16 +164,10 @@ def build_receipt_payload(source_file: str, receipt_data: dict, config: Config) 
             "title": [{"text": {"content": source_file}}]
         },
         "Store": {
-            "rich_text": [{"text": {"content": store}}]
+            "select": {"name": store}
         },
         "Category": {
             "select": {"name": category}
-        },
-        "Data Source": {
-            "select": {"name": "Cowork"}
-        },
-        "Processed": {
-            "checkbox": True
         },
     }
 

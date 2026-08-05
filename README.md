@@ -113,12 +113,10 @@ Property names and types must match exactly. Select option names must exist in t
 | Property | Type | Notes |
 |---|---|---|
 | Name | Title | Set to the JPG filename (`source_file`) |
-| Store | Rich text | From filename |
+| Store | Select | From filename (option is created/used per store name) |
 | Date | Date | From filename (`YYYY-MM-DD`) |
 | Amount | Number | Receipt total |
 | Category | Select | `Grocery` or `Restaurant` (inferred from store name) |
-| Data Source | Select | Always set to `Cowork` |
-| Processed | Checkbox | Always set to checked |
 
 ### GroceryDB
 
@@ -133,5 +131,3 @@ Property names and types must match exactly. Select option names must exist in t
 **GroceryDB Category options:** `Produce`, `Dairy`, `Meat`, `Pantry`, `Frozen`, `Beverages`, `Deli`, `Snacks & Candy`, `Personal Care`, `Cleaning Supplies`, `Pet`, `Pharmacy`, `Other`
 
 **ReceiptDB Category options:** `Grocery`, `Restaurant`
-
-**ReceiptDB Data Source options:** at least `Cowork`
