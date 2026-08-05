@@ -4,3 +4,5 @@ receipts/
 
 archive
 output
+
+__pycache__/
