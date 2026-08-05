@@ -2,7 +2,8 @@
 """
 parse_receipts.py — Process 1
 Reads receipt JPGs, downscales/compresses them for Claude vision, extracts
-structured item/price/total data, and appends to receipts_raw.csv.
+structured item/price/total data, and writes a per-run CSV
+(MMDDYY_receipts_raw.csv, sequenced on same-day collisions).
 
 Idempotent: skips already-processed files tracked in processed_manifest.json.
 
@@ -29,6 +30,7 @@ from PIL import Image, ImageOps
 import anthropic
 
 from category_config import format_categories_for_prompt, load_categories
+from run_csv import next_run_csv_path
 
 load_dotenv()
 
@@ -38,7 +40,6 @@ class Config:
     input_dir:    Path
     output_dir:   Path
     archive_dir:  Path
-    raw_csv_name: str
     manifest_name:str
     model:        str
     max_tokens:   int
@@ -48,7 +49,6 @@ class Config:
 DEFAULT_INPUT_DIR     = Path("./receipts")
 DEFAULT_OUTPUT_DIR    = Path("./output")
 ARCHIVE_DIR           = Path("./archive")
-RAW_CSV_NAME          = "receipts_raw.csv"
 MANIFEST_NAME         = "processed_manifest.json"
 MODEL                 = "claude-sonnet-4-6"
 MAX_TOKENS            = 4096
@@ -263,10 +263,10 @@ def process_receipt(client: anthropic.Anthropic, image_path: Path, csv_path: Pat
     print(f" INFO: {len(items)} items written for {image_path.name}")
     return True
 
-def ensure_output_files(raw_csv: Path):
-    if not raw_csv.exists():
-        with open(raw_csv, "w", newline="", encoding="utf-8") as f:
-            csv.DictWriter(f, fieldnames=RAW_CSV_FIELDS).writeheader()
+def create_run_csv(raw_csv: Path):
+    """Create a fresh per-run CSV with header (never reuse an existing path)."""
+    with open(raw_csv, "w", newline="", encoding="utf-8") as f:
+        csv.DictWriter(f, fieldnames=RAW_CSV_FIELDS).writeheader()
 
 def main():
     parser = argparse.ArgumentParser(description="Parse JPG receipts with Claude vision and extract structured data to CSV.")
@@ -277,7 +277,6 @@ def main():
         input_dir     = Path(os.getenv("INPUT_DIR", DEFAULT_INPUT_DIR)),
         output_dir    = Path(os.getenv("OUTPUT_DIR", DEFAULT_OUTPUT_DIR)),
         archive_dir   = Path(os.getenv("ARCHIVE_DIR", ARCHIVE_DIR)),
-        raw_csv_name  = os.getenv("RAW_CSV_NAME", RAW_CSV_NAME),
         manifest_name = os.getenv("MANIFEST_NAME", MANIFEST_NAME),
         model         = os.getenv("MODEL", MODEL),
         max_tokens    = int(os.getenv("MAX_TOKENS", MAX_TOKENS)),
@@ -288,10 +287,7 @@ def main():
     config.output_dir.mkdir(parents=True, exist_ok=True)
     config.archive_dir.mkdir(parents=True, exist_ok=True)
 
-    csv_path      = config.output_dir / config.raw_csv_name
     manifest_path = config.output_dir / config.manifest_name
-
-    ensure_output_files(csv_path)
 
     if not config.input_dir.exists():
         print(f" ERROR: Input directory not found: {config.input_dir}")
@@ -302,12 +298,16 @@ def main():
         print(f" ERROR: No JPGs found in {config.input_dir}")
         sys.exit(0)
 
+    csv_path = next_run_csv_path(config.output_dir)
+    create_run_csv(csv_path)
+
     manifest = set() if args.reprocess else load_manifest(manifest_path)
     client   = anthropic.Anthropic()
 
     print(f"\n{'='*50}")
     print(f"Receipt Parser: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Input Directory:    {config.input_dir}")
+    print(f"Output CSV:         {csv_path}")
     print(f"JPGs found: {len(images)} | Already processed: {len(manifest)}")
     print(f"{'='*50}\n")
 

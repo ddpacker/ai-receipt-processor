@@ -27,15 +27,15 @@ NOTION_TOKEN=ntn_...
 INPUT_DIR=./receipts
 OUTPUT_DIR=./output
 ARCHIVE_DIR=./archive
-INPUT_CSV=./output/receipts_raw.csv
 MAX_TOKENS=4096
 IMAGE_MAX_EDGE=1568
 JPEG_QUALITY=85
+# INPUT_CSV=./output/080526_receipts_raw.csv   # optional; default = latest dated run CSV
 # RECEIPT_DB_ID=...
 # GROCERY_DB_ID=...
 ```
 
-Share your Notion integration with both databases. If you override `OUTPUT_DIR`, set `INPUT_CSV` to the same folder’s `receipts_raw.csv` (or pass `--input` when uploading).
+Share your Notion integration with both databases. If you override `OUTPUT_DIR`, upload still looks there for the latest dated run CSV (or set `INPUT_CSV` / `--input`).
 
 Before sending to Claude, each JPG is auto-oriented, converted to grayscale, downscaled so the long edge is at most `IMAGE_MAX_EDGE` (Claude's standard vision sweet spot), and re-encoded at `JPEG_QUALITY`. Raise `IMAGE_MAX_EDGE` toward ~2576 only if small print is still hard to read.
 
@@ -64,26 +64,34 @@ python parse_receipts.py
 python parse_receipts.py --reprocess
 ```
 
-Processed JPGs are moved to `ARCHIVE_DIR` automatically. Rerunning is safe as the manifest tracks completed files and skips them.
+Each invocation writes a **new** per-run CSV named for the day you run the script (not receipt dates):
+
+```
+080526_receipts_raw.csv      # first run that day
+080526_receipts_raw_2.csv    # second run / reprocess same day
+080626_receipts_raw.csv      # next calendar day
+```
+
+Same-day collisions get a `_N` suffix — never overwrite. Processed JPGs move to `ARCHIVE_DIR`. `processed_manifest.json` stays a cumulative skip list across runs.
 
 ### 2. Upload CSV → Notion
 
 ```bash
-# Push new receipts from INPUT_CSV (default: ./output/receipts_raw.csv)
+# Push from the latest dated run CSV in OUTPUT_DIR
 python upload_to_notion.py
 
-# Explicit CSV path
-python upload_to_notion.py --input ./output/receipts_raw.csv
+# Explicit CSV (e.g. an older run)
+python upload_to_notion.py --input ./output/080526_receipts_raw.csv
 
-# Re-push all receipts (ignores push manifest; creates duplicate Notion pages)
+# Re-push all receipts in that CSV (ignores push manifest; creates duplicate Notion pages)
 python upload_to_notion.py --repush
 ```
 
-Pushed `source_file` values are tracked in `OUTPUT_DIR/push_manifest.json`. Each receipt becomes one ReceiptDB page; each line item becomes one GroceryDB page related to that receipt.
+Pushed `source_file` values are tracked in `OUTPUT_DIR/push_manifest.json` (also cumulative). Each receipt becomes one ReceiptDB page; each line item becomes one GroceryDB page related to that receipt.
 
 ## Output
 
-`output/receipts_raw.csv` with one row per line item:
+Per-run CSV in `OUTPUT_DIR` (`MMDDYY_receipts_raw.csv`) with one row per line item:
 
 | Field | Description |
 |---|---|

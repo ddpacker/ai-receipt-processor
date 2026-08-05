@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
 upload_to_notion.py — Process 2
-Reads receipts_raw.csv (already enriched by parse_receipts.py) and pushes
-each receipt + its line items to Notion (ReceiptDB + GroceryDB).
+Reads a per-run receipts CSV from parse_receipts.py and pushes each receipt
++ its line items to Notion (ReceiptDB + GroceryDB).
 
 Idempotent: tracks pushed source_files in push_manifest.json.
 
 Usage:
     python upload_to_notion.py
-    python upload_to_notion.py --input ./output/receipts_raw.csv
+    python upload_to_notion.py --input ./output/080526_receipts_raw.csv
     python upload_to_notion.py --repush    # ignore push manifest, re-push all
 """
 
@@ -26,6 +26,7 @@ import httpx
 from dotenv import load_dotenv
 
 from category_config import grocery_category_map
+from run_csv import find_latest_run_csv
 
 load_dotenv()
 
@@ -40,7 +41,6 @@ class Config:
     grocery_db_id:      str
 
 
-DEFAULT_INPUT_CSV     = Path("./output/receipts_raw.csv")
 DEFAULT_OUTPUT_DIR    = Path("./output")
 DEFAULT_MANIFEST_NAME = "push_manifest.json"
 DEFAULT_RECEIPT_DB_ID = "34825337-2a14-806f-9274-000b306b4584"
@@ -250,16 +250,35 @@ def push_receipts_to_notion(
     return push_manifest | newly_pushed
 
 
+def resolve_input_csv(args_input: Path | None, output_dir: Path) -> Path:
+    """Prefer --input, then INPUT_CSV, else the latest dated run CSV in output_dir."""
+    if args_input is not None:
+        return args_input
+
+    env_csv = os.getenv("INPUT_CSV")
+    if env_csv:
+        return Path(env_csv)
+
+    latest = find_latest_run_csv(output_dir)
+    if latest is None:
+        print(f"✗ No dated run CSV found in {output_dir}")
+        print("  Expected files like MMDDYY_receipts_raw.csv (from parse_receipts.py)")
+        print("  Or pass --input / set INPUT_CSV.")
+        sys.exit(1)
+    return latest
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
-    parser = argparse.ArgumentParser(description="Upload receipts_raw.csv to Notion (ReceiptDB + GroceryDB).")
-    parser.add_argument("--input",  type=Path, default=None, help="Path to receipts_raw.csv")
+    parser = argparse.ArgumentParser(description="Upload a per-run receipts CSV to Notion (ReceiptDB + GroceryDB).")
+    parser.add_argument("--input",  type=Path, default=None, help="Path to a dated run CSV (default: latest in OUTPUT_DIR)")
     parser.add_argument("--repush", action="store_true",     help="Re-push all receipts regardless of manifest")
     args = parser.parse_args()
 
+    output_dir = Path(os.getenv("OUTPUT_DIR", str(DEFAULT_OUTPUT_DIR)))
     config = Config(
-        input_csv          = args.input or Path(os.getenv("INPUT_CSV", str(DEFAULT_INPUT_CSV))),
-        output_dir         = Path(os.getenv("OUTPUT_DIR", str(DEFAULT_OUTPUT_DIR))),
+        input_csv          = resolve_input_csv(args.input, output_dir),
+        output_dir         = output_dir,
         push_manifest_name = os.getenv("PUSH_MANIFEST_NAME", DEFAULT_MANIFEST_NAME),
         notion_token       = os.getenv("NOTION_TOKEN", ""),
         receipt_db_id      = os.getenv("RECEIPT_DB_ID", DEFAULT_RECEIPT_DB_ID),
