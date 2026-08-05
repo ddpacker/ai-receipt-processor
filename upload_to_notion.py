@@ -43,8 +43,6 @@ class Config:
 
 DEFAULT_OUTPUT_DIR    = Path("./output")
 DEFAULT_MANIFEST_NAME = "push_manifest.json"
-DEFAULT_RECEIPT_DB_ID = "34825337-2a14-806f-9274-000b306b4584"
-DEFAULT_GROCERY_DB_ID = "34825337-2a14-80f8-8f04-000b84ac7e41"
 
 # ── Notion REST API ───────────────────────────────────────────────────────────
 NOTION_API_BASE    = "https://api.notion.com/v1"
@@ -280,14 +278,21 @@ def main():
         input_csv          = resolve_input_csv(args.input, output_dir),
         output_dir         = output_dir,
         push_manifest_name = os.getenv("PUSH_MANIFEST_NAME", DEFAULT_MANIFEST_NAME),
-        notion_token       = os.getenv("NOTION_TOKEN", ""),
-        receipt_db_id      = os.getenv("RECEIPT_DB_ID", DEFAULT_RECEIPT_DB_ID),
-        grocery_db_id      = os.getenv("GROCERY_DB_ID", DEFAULT_GROCERY_DB_ID),
+        notion_token       = os.getenv("NOTION_TOKEN", "").strip(),
+        receipt_db_id      = os.getenv("RECEIPT_DB_ID", "").strip(),
+        grocery_db_id      = os.getenv("GROCERY_DB_ID", "").strip(),
     )
 
+    missing = []
     if not config.notion_token:
-        print("✗ NOTION_TOKEN is not set.")
-        print("  Add it to your .env file or: export NOTION_TOKEN=secret_...")
+        missing.append("NOTION_TOKEN")
+    if not config.receipt_db_id:
+        missing.append("RECEIPT_DB_ID")
+    if not config.grocery_db_id:
+        missing.append("GROCERY_DB_ID")
+    if missing:
+        print(f"✗ Required env var(s) not set: {', '.join(missing)}")
+        print("  Add them to your .env file (see README Setup).")
         sys.exit(1)
 
     if not config.input_csv.exists():

@@ -22,6 +22,8 @@ Create a `.env` file in the project root:
 ```ini
 ANTHROPIC_API_KEY=sk-ant-...
 NOTION_TOKEN=ntn_...
+RECEIPT_DB_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+GROCERY_DB_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 # Optional overrides (these are the defaults)
 INPUT_DIR=./receipts
@@ -31,11 +33,9 @@ MAX_TOKENS=4096
 IMAGE_MAX_EDGE=1568
 JPEG_QUALITY=85
 # INPUT_CSV=./output/080526_receipts_raw.csv   # optional; default = latest dated run CSV
-# RECEIPT_DB_ID=...
-# GROCERY_DB_ID=...
 ```
 
-Share your Notion integration with both databases. If you override `OUTPUT_DIR`, upload still looks there for the latest dated run CSV (or set `INPUT_CSV` / `--input`).
+`NOTION_TOKEN`, `RECEIPT_DB_ID`, and `GROCERY_DB_ID` are required for `upload_to_notion.py`. Copy each database ID from its Notion URL, and share your Notion integration with both databases. If you override `OUTPUT_DIR`, upload still looks there for the latest dated run CSV (or set `INPUT_CSV` / `--input`).
 
 Before sending to Claude, each JPG is auto-oriented, converted to grayscale, downscaled so the long edge is at most `IMAGE_MAX_EDGE` (Claude's standard vision sweet spot), and re-encoded at `JPEG_QUALITY`. Raise `IMAGE_MAX_EDGE` toward ~2576 only if small print is still hard to read.
 
