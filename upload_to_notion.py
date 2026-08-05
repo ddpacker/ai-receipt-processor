@@ -25,6 +25,8 @@ from pathlib import Path
 import httpx
 from dotenv import load_dotenv
 
+from category_config import grocery_category_map
+
 load_dotenv()
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -48,21 +50,7 @@ DEFAULT_GROCERY_DB_ID = "34825337-2a14-80f8-8f04-000b84ac7e41"
 NOTION_API_BASE    = "https://api.notion.com/v1"
 NOTION_API_VERSION = "2022-06-28"
 
-GROCERY_CATEGORY_MAP = {
-    "Produce":           "Produce",
-    "Dairy":             "Dairy",
-    "Meat":              "Meat",
-    "Pantry":            "Pantry",
-    "Frozen":            "Frozen",
-    "Beverages":         "Beverages",
-    "Deli":              "Deli",
-    "Snacks & Candy":    "Snacks & Candy",
-    "Personal Care":     "Personal Care",
-    "Cleaning Supplies": "Cleaning Supplies",
-    "Pet":               "Pet",
-    "Pharmacy":          "Pharmacy",
-    "Other":             "Other",
-}
+GROCERY_CATEGORY_MAP = grocery_category_map()
 
 
 # ── CSV helpers ───────────────────────────────────────────────────────────────

@@ -98,15 +98,13 @@ Pushed `source_file` values are tracked in `OUTPUT_DIR/push_manifest.json`. Each
 
 ## Categories
 
-These exist within the prompt in `parse_receipts.py` currently; add or remove as necessary...
+Edit [`categories.json`](categories.json) to add or remove grocery categories. Both `parse_receipts.py` (Claude prompt) and `upload_to_notion.py` (Notion select mapping) load from that file. Override the path with `CATEGORIES_FILE` if needed.
 
-`Produce`, `Dairy`, `Meat`, `Pantry`, `Frozen`, `Beverages`, `Deli`, `Snacks & Candy`, `Personal Care`, `Cleaning Supplies`, `Pet`, `Pharmacy`
-
-Items the model isn't confident about are left with empty `interp_name` and `category` fields for downstream processing. Unmapped / empty grocery categories become `Other` in Notion.
+Unmapped / empty grocery categories become `Other` in Notion (always available as a fallback; not listed in the extraction prompt).
 
 ## Notion schemas
 
-Property names and types must match exactly. Select option names must exist in the database.
+Property names and types must match exactly. Select option names are usually created automatically by the Notion API when first used.
 
 ### ReceiptDB
 
@@ -125,9 +123,7 @@ Property names and types must match exactly. Select option names must exist in t
 | Name | Title | Prefer `interp_name`, else `raw_name` |
 | Line Item | Rich text | Verbatim `raw_name` from the receipt |
 | Amount | Number | Item price |
-| Category | Select | See options below |
+| Category | Select | Options from `categories.json`, plus `Other` |
 | Receipt | Relation | Points at the parent ReceiptDB page |
-
-**GroceryDB Category options:** `Produce`, `Dairy`, `Meat`, `Pantry`, `Frozen`, `Beverages`, `Deli`, `Snacks & Candy`, `Personal Care`, `Cleaning Supplies`, `Pet`, `Pharmacy`, `Other`
 
 **ReceiptDB Category options:** `Grocery`, `Restaurant`

@@ -28,6 +28,8 @@ from dataclasses import dataclass
 from PIL import Image, ImageOps
 import anthropic
 
+from category_config import format_categories_for_prompt, load_categories
+
 load_dotenv()
 
 # ── Default Config ──────────────────────
@@ -69,26 +71,24 @@ RAW_CSV_FIELDS = [
 ]
 
 # ── Prompt ────────────────────────────
-# TODO: Parameterize the known categories from a config file for easier updates without code changes. For now, hardcoded in the prompt for simplicity.
-EXTRACTION_PROMPT = """You are extracting structured data from a receipt image.
+_CATEGORIES = load_categories()
+EXTRACTION_PROMPT = f"""You are extracting structured data from a receipt image.
 
 Extract the following and respond ONLY with a valid JSON object — no markdown fences, no explanation:
-{
+{{
   "total": numeric final total after tax (no $ sign), or empty string,
   "items": [
-    { 
+    {{ 
         "raw_name": EXACT text from receipt, 
         "interp_name": Cleaned up name if possible, or an empty string if not,
         "category": Either a known category, or an empty string if unknown,
         "price": numeric or "" if the price is illegible 
-    }
+    }}
   ]
-}
+}}
 
 Known Categories:
-    "Produce", "Dairy", "Meat", "Pantry", "Frozen", "Beverages",
-    "Deli", "Snacks & Candy", "Personal Care", "Cleaning Supplies",
-    "Pet", "Pharmacy"
+{format_categories_for_prompt(_CATEGORIES)}
 
 Rules:
 - raw_name must be verbatim — do not interpret, clean, or expand abbreviations.
