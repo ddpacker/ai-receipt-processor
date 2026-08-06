@@ -4,6 +4,7 @@ upload_to_notion.py — Process 2
 Reads a per-run receipts CSV from parse_receipts.py and pushes each receipt
 + its line items to Notion (ReceiptDB + GroceryDB).
 
+Refuses the entire file if any receipt is missing store or a YYYY-MM-DD date.
 Idempotent: tracks pushed source_files in push_manifest.json.
 
 Usage:
@@ -26,6 +27,7 @@ import httpx
 from dotenv import load_dotenv
 
 from category_config import grocery_category_map
+from receipt_complete import incomplete_receipts
 from run_csv import find_latest_run_csv
 
 load_dotenv()
@@ -118,7 +120,10 @@ def notion_request(
             if resp.status_code >= 500:
                 time.sleep(2 ** attempt)
                 continue
-            resp.raise_for_status()
+            if resp.status_code >= 400:
+                # Notion puts the actionable reason (bad property name/type, etc.)
+                # in the response body, not the status line.
+                raise RuntimeError(f"{resp.status_code} from {method} {endpoint}: {resp.text}")
             return resp.json()
         except httpx.TimeoutException:
             if attempt == retries - 1:
@@ -144,21 +149,22 @@ def build_receipt_payload(source_file: str, receipt_data: dict, config: Config) 
     date     = receipt_data["date"]
     total    = receipt_data["total"]
     category = map_receipt_category(store)
+    page_name = Path(source_file).stem
 
     props: dict = {
         "Name": {
-            "title": [{"text": {"content": source_file}}]
+            "title": [{"text": {"content": page_name}}]
         },
         "Store": {
             "select": {"name": store}
+        },
+        "Date": {
+            "date": {"start": date}
         },
         "Category": {
             "select": {"name": category}
         },
     }
-
-    if date:
-        props["Date"] = {"date": {"start": date}}
 
     if total not in ("", None):
         try:
@@ -310,6 +316,15 @@ def main():
     rows     = read_csv(config.input_csv)
     receipts = group_rows_by_receipt(rows)
     print(f"Loaded {len(rows)} rows → {len(receipts)} receipt(s).\n")
+
+    incomplete = incomplete_receipts(receipts)
+    if incomplete:
+        print("✗ CSV is not ready for Notion — every receipt needs store and date.\n")
+        for source_file, missing in incomplete:
+            print(f"  {source_file}: missing {', '.join(missing)}")
+        print(f"\n{len(incomplete)} incomplete receipt(s). Fill store/date in the CSV, then re-run.")
+        print(f"{'='*50}\n")
+        sys.exit(1)
 
     push_manifest = load_push_manifest(push_manifest_path)
     print(f"Already pushed: {len(push_manifest)} receipt(s)\n")
