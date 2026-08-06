@@ -89,6 +89,8 @@ python upload_to_notion.py --repush
 
 Pushed `source_file` values are tracked in `OUTPUT_DIR/push_manifest.json` (also cumulative). Each receipt becomes one ReceiptDB page; each line item becomes one GroceryDB page related to that receipt.
 
+**Upload gate:** every receipt in the CSV must have non-empty `store` and a `date` in `YYYY-MM-DD` form. If any are missing, upload prints the list and exits without pushing anything. Fill those fields in the run CSV (edit every row for that `source_file`), then re-run upload. Parse may leave blanks when Claude could not read them from a scanned PDF; it reports incompletes at the end of the run.
+
 ## Output
 
 Per-run CSV in `OUTPUT_DIR` (`MMDDYY_receipts_raw.csv`) with one row per line item:
@@ -118,7 +120,7 @@ Property names and types must match exactly. Select option names are usually cre
 
 | Property | Type | Notes |
 |---|---|---|
-| Name | Title | Set to the JPG filename (`source_file`) |
+| Name | Title | JPG stem (`MMDDYY_StoreName`, no extension) |
 | Store | Select | From filename (option is created/used per store name) |
 | Date | Date | From filename (`YYYY-MM-DD`) |
 | Amount | Number | Receipt total |
